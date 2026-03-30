@@ -4,6 +4,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedLayout } from "./components/layout/ProtectedLayout";
 import { AuthPage } from "./pages/auth/AuthPage";
 import { DashboardPage } from "./pages/dashboard/DashboardPage";
+import { TenantDetailPage } from "./pages/tenant/TenantDetailPage";
 
 const theme = createTheme({
   palette: {
@@ -50,6 +51,7 @@ export default function App() {
             <Route path="/login" element={<AuthPage />} />
             <Route element={<ProtectedLayout />}>
               <Route path="/" element={<DashboardPage />} />
+              <Route path="/tenants/:tenantId" element={<TenantDetailPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
