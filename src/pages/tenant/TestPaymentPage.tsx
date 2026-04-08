@@ -6,17 +6,106 @@ import {
   Button,
   Card,
   CardContent,
+  Chip,
   CircularProgress,
+  Collapse,
   Container,
   Divider,
   Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
   Typography,
 } from "@mui/material";
-import { ArrowBackIosNew, OpenInNew, PaymentOutlined } from "@mui/icons-material";
+import {
+  ArrowBackIosNew,
+  ExpandMore,
+  ExpandLess,
+  InfoOutlined,
+  OpenInNew,
+  PaymentOutlined,
+} from "@mui/icons-material";
 import { initMercadoPago, Payment } from "@mercadopago/sdk-react";
 import { tenantsApi, type Tenant } from "../../api/tenants";
 
-const TEST_AMOUNT = 1.0;
+// ---------------------------------------------------------------------------
+// Dados aleatórios para pagamentos de teste
+// ---------------------------------------------------------------------------
+
+const TEST_TITLES = [
+  "Assinatura Mensal",
+  "Plano Premium",
+  "Acesso Anual",
+  "Pacote Profissional",
+  "Licença de Software",
+  "Curso Online",
+  "Consultoria Especializada",
+  "Serviço de Suporte",
+  "Produto Digital",
+  "Pacote Essencial",
+];
+
+const TEST_DESCRIPTIONS = [
+  "Acesso completo à plataforma por 30 dias",
+  "Plano premium com recursos avançados",
+  "Licença anual com suporte prioritário",
+  "Pacote profissional com integração completa",
+  "Serviço de consultoria especializada",
+  "Acesso a cursos e materiais exclusivos",
+  "Suporte técnico dedicado ao cliente",
+  "Produto digital com entrega imediata",
+  "Plano para pequenas e médias empresas",
+  "Assinatura com renovação automática",
+];
+
+const TEST_CATEGORIES = [
+  "services",
+  "entertainment",
+  "education",
+  "technology",
+  "health",
+  "sports_and_outdoors",
+  "fashion",
+  "food",
+  "home_appliances",
+  "games",
+];
+
+function pickRandom<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function randomAmount(): number {
+  // Valor entre 20,00 e 49,99 com duas casas decimais
+  const raw = Math.random() * (49.99 - 20.0) + 20.0;
+  return Math.round(raw * 100) / 100;
+}
+
+// ---------------------------------------------------------------------------
+// Cartões de teste sandbox (Brasil / MLB)
+// ---------------------------------------------------------------------------
+
+const SANDBOX_CARDS = [
+  { brand: "Mastercard", type: "Crédito", number: "5031 4332 1540 6351", cvv: "123", exp: "11/30" },
+  { brand: "Visa", type: "Crédito", number: "4235 6477 2802 5682", cvv: "123", exp: "11/30" },
+  { brand: "Amex", type: "Crédito", number: "3753 651535 56885", cvv: "1234", exp: "11/30" },
+  { brand: "Elo", type: "Débito", number: "5067 7667 8388 8311", cvv: "123", exp: "11/30" },
+];
+
+const SANDBOX_NAME_CODES = [
+  { name: "APRO", cpf: "12345678909", result: "Aprovado" },
+  { name: "OTHE", cpf: "12345678909", result: "Recusado — erro geral" },
+  { name: "FUND", cpf: "—", result: "Recusado — saldo insuficiente" },
+  { name: "SECU", cpf: "—", result: "Recusado — CVV inválido" },
+  { name: "EXPI", cpf: "—", result: "Recusado — cartão vencido" },
+  { name: "CONT", cpf: "—", result: "Pendente" },
+];
+
+// ---------------------------------------------------------------------------
+// Componente
+// ---------------------------------------------------------------------------
 
 export function TestPaymentPage() {
   const { tenantId } = useParams<{ tenantId: string }>();
@@ -38,6 +127,8 @@ export function TestPaymentPage() {
   } | null>(null);
   const [brickError, setBrickError] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
+
+  const [sandboxOpen, setSandboxOpen] = useState(false);
 
   const statusParam = searchParams.get("status");
 
@@ -68,7 +159,12 @@ export function TestPaymentPage() {
     setLoadingPreference(true);
     setPreferenceError(null);
     try {
-      const res = await tenantsApi.createPreference(Number(tenantId));
+      const res = await tenantsApi.createPreference(Number(tenantId), {
+        amount: randomAmount(),
+        title: pickRandom(TEST_TITLES),
+        description: pickRandom(TEST_DESCRIPTIONS),
+        category: pickRandom(TEST_CATEGORIES),
+      });
       const initPoint = res.data.initPoint;
       if (!initPoint) {
         setPreferenceError("Mercado Pago não retornou o link de pagamento.");
@@ -89,8 +185,8 @@ export function TestPaymentPage() {
     try {
       const res = await tenantsApi.processPayment(Number(tenantId), {
         formData,
-        amount: TEST_AMOUNT,
-        description: "Pagamento Teste",
+        amount: randomAmount(),
+        description: pickRandom(TEST_DESCRIPTIONS),
       });
       setPaymentResult({
         status: res.data.mpStatus,
@@ -158,10 +254,121 @@ export function TestPaymentPage() {
             Pagamento Teste
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {tenant.name} — valor: R$ {TEST_AMOUNT.toFixed(2)}
+            {tenant.name} — valores e dados gerados aleatoriamente a cada tentativa
           </Typography>
         </Box>
       </Stack>
+
+      {/* Seção de cartões sandbox */}
+      <Card variant="outlined" sx={{ borderRadius: 2, mb: 3, borderColor: "info.light" }}>
+        <CardContent sx={{ pb: "12px !important" }}>
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="space-between"
+            sx={{ cursor: "pointer" }}
+            onClick={() => setSandboxOpen((v) => !v)}
+          >
+            <Stack direction="row" alignItems="center" gap={1}>
+              <InfoOutlined color="info" fontSize="small" />
+              <Typography variant="subtitle2" fontWeight={700} color="info.main">
+                Dados para teste (sandbox)
+              </Typography>
+              <Chip label="Somente contas de teste MP" size="small" color="info" variant="outlined" />
+            </Stack>
+            {sandboxOpen ? <ExpandLess color="info" /> : <ExpandMore color="info" />}
+          </Stack>
+
+          <Collapse in={sandboxOpen}>
+            <Box mt={2}>
+              <Alert severity="info" sx={{ mb: 2 }}>
+                Use estes dados apenas quando a conta MP conectada ao tenant for uma{" "}
+                <strong>conta de teste (sandbox)</strong>. Em produção, use cartões reais.
+              </Alert>
+
+              <Typography variant="body2" fontWeight={700} mb={1}>
+                Cartões de teste — Brasil (MLB)
+              </Typography>
+              <Table size="small" sx={{ mb: 3 }}>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Bandeira</TableCell>
+                    <TableCell>Tipo</TableCell>
+                    <TableCell>Número</TableCell>
+                    <TableCell>CVV</TableCell>
+                    <TableCell>Vencimento</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {SANDBOX_CARDS.map((card) => (
+                    <TableRow key={card.number}>
+                      <TableCell>{card.brand}</TableCell>
+                      <TableCell>{card.type}</TableCell>
+                      <TableCell>
+                        <Typography variant="body2" fontFamily="monospace">
+                          {card.number}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" fontFamily="monospace">
+                          {card.cvv}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>{card.exp}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              <Typography variant="body2" fontWeight={700} mb={1}>
+                Resultado pelo nome do titular
+              </Typography>
+              <Typography variant="caption" color="text.secondary" display="block" mb={1}>
+                No campo "Nome do titular", digite exatamente um dos códigos abaixo para controlar o resultado.
+              </Typography>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Nome do titular</TableCell>
+                    <TableCell>CPF</TableCell>
+                    <TableCell>Resultado</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {SANDBOX_NAME_CODES.map((code) => (
+                    <TableRow key={code.name}>
+                      <TableCell>
+                        <Typography variant="body2" fontFamily="monospace" fontWeight={700}>
+                          {code.name}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" fontFamily="monospace">
+                          {code.cpf}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={code.result}
+                          size="small"
+                          color={
+                            code.result === "Aprovado"
+                              ? "success"
+                              : code.result === "Pendente"
+                              ? "warning"
+                              : "error"
+                          }
+                          variant="outlined"
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Box>
+          </Collapse>
+        </CardContent>
+      </Card>
 
       {statusParam && (
         <Alert
@@ -194,8 +401,8 @@ export function TestPaymentPage() {
               Opção 1 — Checkout Pro
             </Typography>
             <Typography variant="body2" color="text.secondary" mb={2}>
-              Abre a tela de pagamento do Mercado Pago em uma nova aba. Você seleciona o método lá.
-              Depois você pode conferir o status do pagamento na{" "}
+              Abre a tela de pagamento do Mercado Pago em uma nova aba. Valor e dados gerados
+              aleatoriamente. Confira o resultado na{" "}
               <Typography
                 component="span"
                 variant="body2"
@@ -208,7 +415,7 @@ export function TestPaymentPage() {
             </Typography>
             <Alert severity="warning" sx={{ mb: 2 }}>
               Você não pode pagar com a mesma conta do Mercado Pago que está conectada a este tenant.
-              Abra o link em uma aba anônima ou use outra conta para realizar o pagamento.
+              Abra o link em uma aba anônima ou use outra conta.
             </Alert>
             <Divider sx={{ mb: 2 }} />
             {preferenceError && (
@@ -295,7 +502,7 @@ export function TestPaymentPage() {
                 )}
                 {brickReady && !processing && (
                   <Payment
-                    initialization={{ amount: TEST_AMOUNT }}
+                    initialization={{ amount: randomAmount() }}
                     customization={{
                       paymentMethods: {
                         creditCard: "all",

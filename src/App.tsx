@@ -9,6 +9,7 @@ import { TenantDetailPage } from "./pages/tenant/TenantDetailPage";
 import { TestPaymentPage } from "./pages/tenant/TestPaymentPage";
 import { PaymentsListPage } from "./pages/tenant/PaymentsListPage";
 import { RefundsPage } from "./pages/tenant/RefundsPage";
+import { RefundsListPage } from "./pages/tenant/RefundsListPage";
 import { RefundDetailPage } from "./pages/tenant/RefundDetailPage";
 import { PaymentDetailPage } from "./pages/tenant/PaymentDetailPage";
 
@@ -63,6 +64,7 @@ export default function App() {
               <Route path="/tenants/:tenantId/payments" element={<PaymentsListPage />} />
               <Route path="/tenants/:tenantId/payments/:paymentId" element={<PaymentDetailPage />} />
               <Route path="/tenants/:tenantId/refunds" element={<RefundsPage />} />
+              <Route path="/tenants/:tenantId/refunds/list" element={<RefundsListPage />} />
               <Route path="/tenants/:tenantId/refunds/:paymentId/:refundId" element={<RefundDetailPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />

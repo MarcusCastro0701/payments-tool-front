@@ -74,15 +74,17 @@ export const tenantsApi = {
     api.get<{ url: string }>(`/mp/connect/url?tenantId=${tenantId}`),
   rotateApiKey: (tenantId: number) =>
     api.post<{ apiKey: string; apiKeyPrefix: string }>(`/tenants/${tenantId}/api-key/rotate`),
-  createPreference: (tenantId: number) =>
+  createPreference: (tenantId: number, data?: { amount?: number; title?: string; description?: string; category?: string }) =>
     api.post<{ paymentId: number; initPoint: string | null }>(
       `/tenants/${tenantId}/preference`,
-      {}
+      data ?? {}
     ),
-  listPayments: (tenantId: number, params?: { startDate?: string; endDate?: string; page?: number }) =>
+  listPayments: (tenantId: number, params?: { startDate?: string; endDate?: string; page?: number; origin?: string }) =>
     api.get<PaymentList>(`/tenants/${tenantId}/payments`, { params }),
   showPayment: (tenantId: number, paymentId: number) =>
     api.get<PaymentDetail>(`/tenants/${tenantId}/payments/${paymentId}`),
+  syncPayment: (tenantId: number, paymentId: number) =>
+    api.post<PaymentDetail>(`/tenants/${tenantId}/payments/${paymentId}/sync`),
   processPayment: (tenantId: number, data: { formData: any; amount: number; description?: string }) =>
     api.post<{ id: number; mpStatus: string; mpStatusDetail: string; status: string; amount: number }>(
       `/tenants/${tenantId}/process-payment`,

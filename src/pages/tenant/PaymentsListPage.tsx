@@ -16,6 +16,8 @@ import {
   DialogTitle,
   IconButton,
   InputAdornment,
+  MenuItem,
+  Pagination,
   Stack,
   TextField,
   Tooltip,
@@ -31,7 +33,7 @@ import {
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import { Dayjs } from "dayjs";
+import dayjs, { Dayjs } from "dayjs";
 import "dayjs/locale/pt-br";
 import { tenantsApi, type PaymentItem } from "../../api/tenants";
 import { refundsApi } from "../../api/refunds";
@@ -56,6 +58,14 @@ const METHOD_LABELS: Record<string, string> = {
   BANK_TRANSFER: "Transferência",
   MERCADOPAGO:   "Mercado Pago",
 };
+
+const ORIGIN_OPTIONS = [
+  { value: "",         label: "Todos" },
+  { value: "PANEL",    label: "Painel de teste" },
+  { value: "CHECKOUT", label: "Seu negócio" },
+];
+
+const LIMIT = 10;
 
 function formatCurrency(amount: string, currency: string) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency }).format(Number(amount));
@@ -193,6 +203,7 @@ function PaymentCard({
   const config = STATUS_CONFIG[payment.status] ?? STATUS_CONFIG.PENDING;
   const isApproved = payment.status === "APPROVED";
   const hasPendingRefund = payment.refunds?.some((r) => r.status === "pending");
+  const isPanel = payment.origin === "PANEL";
 
   return (
     <>
@@ -215,9 +226,7 @@ function PaymentCard({
                   REEMBOLSO EM PROCESSAMENTO
                 </Typography>
               )}
-              <Typography variant="body1" fontWeight={700}>
-                #{payment.id}
-              </Typography>
+              <Typography variant="body1" fontWeight={700}>#{payment.id}</Typography>
               <Typography variant="body1" fontWeight={600}>
                 {formatCurrency(payment.amount, payment.currency)}
               </Typography>
@@ -226,6 +235,9 @@ function PaymentCard({
               </Typography>
               <InstallmentsLabel metadata={payment.metadata} />
               <Chip label={config.label} color={config.chipColor} size="small" sx={{ fontWeight: 600 }} />
+              {isPanel && (
+                <Chip label="Teste" size="small" variant="outlined" color="warning" />
+              )}
               <Typography variant="body2" color="text.secondary">
                 {new Date(payment.createdAt).toLocaleString("pt-BR")}
               </Typography>
@@ -266,20 +278,28 @@ export function PaymentsListPage() {
 
   const [payments, setPayments] = useState<PaymentItem[]>([]);
   const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [startDate, setStartDate] = useState<Dayjs | null>(null);
-  const [endDate, setEndDate] = useState<Dayjs | null>(null);
+  const [startDate, setStartDate] = useState<Dayjs | null>(dayjs().subtract(7, "day"));
+  const [endDate, setEndDate] = useState<Dayjs | null>(dayjs());
+  const [origin, setOrigin] = useState("");
 
-  const fetchPayments = useCallback((start?: Dayjs | null, end?: Dayjs | null) => {
+  const fetchPayments = useCallback((
+    p: number,
+    start: Dayjs | null,
+    end: Dayjs | null,
+    orig: string,
+  ) => {
     if (!tenantId) return;
     setLoading(true);
     setError(false);
     tenantsApi
       .listPayments(Number(tenantId), {
+        page: p,
         startDate: start ? start.startOf("day").toISOString() : undefined,
         endDate: end ? end.endOf("day").toISOString() : undefined,
-        page: 1,
+        origin: orig || undefined,
       })
       .then((res) => {
         setPayments(res.data.items);
@@ -290,10 +310,30 @@ export function PaymentsListPage() {
   }, [tenantId]);
 
   useEffect(() => {
-    fetchPayments();
+    fetchPayments(1, startDate, endDate, origin);
   }, [fetchPayments]);
 
-  const hasFilter = !!startDate || !!endDate;
+  function handleFilter() {
+    setPage(1);
+    fetchPayments(1, startDate, endDate, origin);
+  }
+
+  function handleClearFilter() {
+    const start = dayjs().subtract(7, "day");
+    const end = dayjs();
+    setStartDate(start);
+    setEndDate(end);
+    setOrigin("");
+    setPage(1);
+    fetchPayments(1, start, end, "");
+  }
+
+  function handlePageChange(_: any, value: number) {
+    setPage(value);
+    fetchPayments(value, startDate, endDate, origin);
+  }
+
+  const totalPages = Math.ceil(total / LIMIT);
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
@@ -312,17 +352,18 @@ export function PaymentsListPage() {
             <Typography variant="h5" fontWeight={700}>Pagamentos</Typography>
             {!loading && (
               <Typography variant="body2" color="text.secondary">
-                {total} registro{total !== 1 ? "s" : ""} encontrado{total !== 1 ? "s" : ""}
+                {total} registro{total !== 1 ? "s" : ""}
               </Typography>
             )}
           </Box>
         </Stack>
 
+        {/* Filtros */}
         <Card variant="outlined" sx={{ borderRadius: 2, mb: 3 }}>
           <CardContent>
             <Stack direction="row" alignItems="center" gap={1} mb={2}>
               <FilterAltOutlined fontSize="small" color="action" />
-              <Typography variant="subtitle2" fontWeight={600}>Filtrar por data</Typography>
+              <Typography variant="subtitle2" fontWeight={600}>Filtros</Typography>
             </Stack>
             <Stack direction="row" alignItems="center" gap={2} flexWrap="wrap">
               <DatePicker
@@ -339,19 +380,30 @@ export function PaymentsListPage() {
                 minDate={startDate ?? undefined}
                 slotProps={{ textField: { size: "small" } }}
               />
-              <Button variant="contained" size="small" onClick={() => fetchPayments(startDate, endDate)}>
+              <TextField
+                select
+                label="Origem"
+                size="small"
+                value={origin}
+                onChange={(e) => setOrigin(e.target.value)}
+                sx={{ minWidth: 160 }}
+                slotProps={{ inputLabel: { shrink: true } }}
+              >
+                {ORIGIN_OPTIONS.map((o) => (
+                  <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
+                ))}
+              </TextField>
+              <Button variant="contained" size="small" onClick={handleFilter}>
                 Buscar
               </Button>
-              {hasFilter && (
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<FilterAltOffOutlined />}
-                  onClick={() => { setStartDate(null); setEndDate(null); fetchPayments(null, null); }}
-                >
-                  Limpar
-                </Button>
-              )}
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<FilterAltOffOutlined />}
+                onClick={handleClearFilter}
+              >
+                Limpar
+              </Button>
             </Stack>
           </CardContent>
         </Card>
@@ -364,21 +416,32 @@ export function PaymentsListPage() {
           <Alert severity="error">Erro ao carregar pagamentos.</Alert>
         ) : payments.length === 0 ? (
           <Box textAlign="center" py={6}>
-            <Typography color="text.secondary">
-              {hasFilter ? "Nenhum pagamento no período selecionado." : "Nenhum pagamento registrado ainda."}
-            </Typography>
+            <Typography color="text.secondary">Nenhum pagamento encontrado.</Typography>
           </Box>
         ) : (
-          <Stack spacing={1.5}>
-            {payments.map((p) => (
-              <PaymentCard
-                key={p.id}
-                payment={p}
-                tenantId={Number(tenantId)}
-                onRefunded={() => fetchPayments(startDate, endDate)}
-              />
-            ))}
-          </Stack>
+          <>
+            <Stack spacing={1.5}>
+              {payments.map((p) => (
+                <PaymentCard
+                  key={p.id}
+                  payment={p}
+                  tenantId={Number(tenantId)}
+                  onRefunded={() => fetchPayments(page, startDate, endDate, origin)}
+                />
+              ))}
+            </Stack>
+
+            {totalPages > 1 && (
+              <Box display="flex" justifyContent="center" mt={3}>
+                <Pagination
+                  count={totalPages}
+                  page={page}
+                  onChange={handlePageChange}
+                  color="primary"
+                />
+              </Box>
+            )}
+          </>
         )}
       </Container>
     </LocalizationProvider>

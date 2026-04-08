@@ -6,6 +6,7 @@ export type Refund = {
   mpRefundId: string;
   amount: string;
   status: string;
+  origin: string;
   reason: string | null;
   createdAt: string;
   updatedAt: string;
@@ -42,7 +43,7 @@ export const refundsApi = {
   getOne: (tenantId: number, paymentId: number, refundId: number) =>
     api.get<Refund>(`/tenants/${tenantId}/payments/${paymentId}/refunds/${refundId}`),
 
-  listByTenant: (tenantId: number, params?: { startDate?: string; endDate?: string; page?: number; limit?: number }) =>
+  listByTenant: (tenantId: number, params?: { startDate?: string; endDate?: string; page?: number; limit?: number; origin?: string }) =>
     api.get<RefundList>(`/tenants/${tenantId}/refunds`, { params }),
 
   getPolicy: (tenantId: number) =>
