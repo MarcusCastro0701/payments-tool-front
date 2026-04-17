@@ -12,6 +12,7 @@ import { RefundsPage } from "./pages/tenant/RefundsPage";
 import { RefundsListPage } from "./pages/tenant/RefundsListPage";
 import { RefundDetailPage } from "./pages/tenant/RefundDetailPage";
 import { PaymentDetailPage } from "./pages/tenant/PaymentDetailPage";
+import { GenerateLinkPage } from "./pages/tenant/GenerateLinkPage";
 
 const theme = createTheme({
   palette: {
@@ -63,6 +64,7 @@ export default function App() {
               <Route path="/tenants/:tenantId/test-payment" element={<TestPaymentPage />} />
               <Route path="/tenants/:tenantId/payments" element={<PaymentsListPage />} />
               <Route path="/tenants/:tenantId/payments/:paymentId" element={<PaymentDetailPage />} />
+              <Route path="/tenants/:tenantId/generate-link" element={<GenerateLinkPage />} />
               <Route path="/tenants/:tenantId/refunds" element={<RefundsPage />} />
               <Route path="/tenants/:tenantId/refunds/list" element={<RefundsListPage />} />
               <Route path="/tenants/:tenantId/refunds/:paymentId/:refundId" element={<RefundDetailPage />} />

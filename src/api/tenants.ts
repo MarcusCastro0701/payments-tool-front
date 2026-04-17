@@ -74,11 +74,17 @@ export const tenantsApi = {
     api.get<{ url: string }>(`/mp/connect/url?tenantId=${tenantId}`),
   rotateApiKey: (tenantId: number) =>
     api.post<{ apiKey: string; apiKeyPrefix: string }>(`/tenants/${tenantId}/api-key/rotate`),
-  createPreference: (tenantId: number, data?: { amount?: number; title?: string; description?: string; category?: string }) =>
+  createPreference: (tenantId: number, data?: { amount?: number; title?: string; description?: string; category?: string; testMode?: "solo" | "share"; payerEmail?: string; payerName?: string }) =>
     api.post<{ paymentId: number; initPoint: string | null }>(
       `/tenants/${tenantId}/preference`,
       data ?? {}
     ),
+  getTestConfig: (tenantId: number) =>
+    api.get<{ mode: "solo" | "share" | null; hasRecentPayment: boolean; nextAvailableAt: string | null }>(
+      `/tenants/${tenantId}/test-config`
+    ),
+  saveTestConfig: (tenantId: number, mode: "solo" | "share") =>
+    api.put<{ mode: "solo" | "share" }>(`/tenants/${tenantId}/test-config`, { mode }),
   listPayments: (tenantId: number, params?: { startDate?: string; endDate?: string; page?: number; origin?: string }) =>
     api.get<PaymentList>(`/tenants/${tenantId}/payments`, { params }),
   showPayment: (tenantId: number, paymentId: number) =>

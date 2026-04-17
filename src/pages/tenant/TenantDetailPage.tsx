@@ -27,7 +27,9 @@ import {
   ArrowBackIosNew,
   AssignmentReturnOutlined,
   ContentCopy,
+  LinkOutlined,
   ReceiptLongOutlined,
+  ScienceOutlined,
   StorefrontOutlined,
   Visibility,
   VisibilityOff,
@@ -212,7 +214,7 @@ export function TenantDetailPage() {
                       onClick={() => navigate(`/tenants/${tenantId}/test-payment`)}
                       sx={{ borderColor: "primary.main", color: "primary.main", "&:hover": { bgcolor: "primary.main", color: "#fff" } }}
                     >
-                      Pagamento Teste
+                      Testar sua conexão
                     </Button>
                   </Box>
                 )}
@@ -382,6 +384,66 @@ export function TenantDetailPage() {
             </Button>
           </CardContent>
         </Card>
+
+        {/* Gerar Links de Pagamento */}
+        {mpConnected && (
+          <Card variant="outlined" sx={{ borderRadius: 2 }}>
+            <CardContent>
+              <Stack direction="row" alignItems="center" gap={1} mb={2}>
+                <LinkOutlined fontSize="small" color="action" />
+                <Typography variant="subtitle1" fontWeight={700}>
+                  Gerar Links de Pagamento
+                </Typography>
+              </Stack>
+              <Divider sx={{ mb: 2 }} />
+              <Typography variant="body2" color="text.secondary" mb={2}>
+                Gere links de pagamento para enviar aos seus clientes via WhatsApp, e-mail ou onde preferir.
+                O cliente clica no link e paga diretamente pelo Mercado Pago — sem precisar de conta ou aplicativo.
+              </Typography>
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<LinkOutlined />}
+                onClick={() => navigate(`/tenants/${tenantId}/generate-link`)}
+                sx={{ borderColor: "primary.main", color: "primary.main", "&:hover": { bgcolor: "primary.main", color: "#fff" } }}
+              >
+                Gerar Link de Pagamento
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Testar conexão */}
+        {mpConnected && (
+          <Card variant="outlined" sx={{ borderRadius: 2, borderColor: "grey.300" }}>
+            <CardContent>
+              <Stack direction="row" alignItems="center" gap={1} mb={2}>
+                <ScienceOutlined fontSize="small" color="action" />
+                <Typography variant="subtitle1" fontWeight={700}>
+                  Teste de Conexão
+                </Typography>
+              </Stack>
+              <Divider sx={{ mb: 2 }} />
+              <Typography variant="body2" color="text.secondary" mb={2}>
+                Verifique com seus próprios olhos que a conexão com o Mercado Pago está funcionando —
+                o pagamento é processado e o valor cai na sua conta.
+              </Typography>
+              <Alert severity="info" sx={{ mb: 2 }}>
+                Esta área é para <strong>testar sua integração</strong>, não para cobrar clientes.
+                Para isso, use a opção "Gerar Links de Pagamento" acima.
+              </Alert>
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<ScienceOutlined />}
+                onClick={() => navigate(`/tenants/${tenantId}/test-payment`)}
+                sx={{ borderColor: "primary.main", color: "primary.main", "&:hover": { bgcolor: "primary.main", color: "#fff" } }}
+              >
+                Testar sua conexão
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Metadata */}
         <Card variant="outlined" sx={{ borderRadius: 2 }}>
